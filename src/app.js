@@ -1195,58 +1195,38 @@ app.get("/api/bots/:id", async (req, res) => {
 
 app.post("/api/bots/:id/", async (req, res) => {
   const key = req.headers.authorization;
-  if (!key) {
+  if (!key)
     return res.status(401).json({
-      message: "Please provide an API Key.",
+      json: "Please provides a API Key.",
     });
-  }
 
-  let bot;
-  try {
-    bot = await global.botModel.findOne({
-      apikey: key,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      message: "An error occurred while searching for the bot.",
-    });
-  }
-
-  if (!bot) {
+  let bot = await global.botModel.findOne({
+    apikey: key,
+  });
+  if (!bot)
     return res.status(404).json({
-      message: "This bot is not on our list, or you entered an invalid API Key.",
+      message:
+        "This bot is not on our list, or you entered an invaild API Key.",
     });
-  }
+  const servers = req.body.server_count || req.header("server_count");
+  const shards = req.body.shard_count || req.header("shard_count");
 
-  let servers = req.body.server_count || req.header("server_count");
-  let shards = req.body.shard_count || req.header("shard_count");
-
-  if (!servers || isNaN(servers)) {
+  if (!servers)
     return res.status(400).json({
-      message: "Please provide a valid server count.",
+      message: "Please provide a server count.",
     });
-  }
-
-  if (!shards || isNaN(shards)) {
-    shards = 0;
-  }
-
-  bot.servers = Number(servers).toLocaleString();
-  bot.shards = Number(shards).toLocaleString();
-
-  try {
-    await bot.save();
-  } catch (error) {
-    return res.status(500).json({
-      message: "An error occurred while updating the bot.",
+  if (!shards)
+    return res.status(400).json({
+      message: "Please provide a shard count.",
     });
-  }
 
+  bot.servers = servers.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  bot.shards = shards.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  await bot.save().catch(() => null);
   return res.json({
     message: "Successfully updated.",
   });
 });
-
 
 app.get("/api/bots/:id/voted", async (req, res) => {
   const bot = await global.botModel.findOne({
